@@ -36,8 +36,8 @@ def neighborhood (s : set α) (x : α) := ∃ V, is_open V ∧ (x ∈ V) ∧ (V 
 def interior_point (x : α) (s : set α) := neighborhood s x 
 def exterior_point (x : α) (s : set α) := neighborhood sᶜ x
 
-def interior_set (s : set α) := {x | interior_point x s}
-def clojure_set (s : set α) := {x | ¬ exterior_point x s}
+def interior (s : set α) := {x | interior_point x s}
+def closure (s : set α) := {x | ¬ exterior_point x s}
 
 
 lemma union_of_sub (s: set α) (f : α → set α) (hf : ∀ x ∈ s, x ∈ f x ∧ f x ⊆ s) :
@@ -81,7 +81,7 @@ begin
 end
 
 theorem interior_is_union_of_open (s : set α) :
-    interior_set s = ⋃₀ {s' | is_open s' ∧ s' ⊆ s} :=
+    interior s = ⋃₀ {s' | is_open s' ∧ s' ⊆ s} :=
 begin
     ext,
     simp,
@@ -96,6 +96,15 @@ begin
         intros s' isOpen sin' xin,
         exact ⟨ s', isOpen, xin, sin' ⟩,
     }
+end
+
+lemma interior_is_open (s : set α) : is_open (interior s) :=
+begin
+    rw interior_is_union_of_open _,
+    apply is_open_sUnion,
+    simp,
+    intros t topen _,
+    exact topen
 end
 
 
@@ -126,13 +135,13 @@ begin
 end
 
 theorem closure_is_intersection (s : set α) :
-    clojure_set s = ⋂₀ {t | is_closed t ∧ s ⊆ t} :=
+    closure s = ⋂₀ {t | is_closed t ∧ s ⊆ t} :=
 begin
     ext,
     split,
     {
         intros xincl,
-        unfold clojure_set at xincl,
+        unfold closure at xincl,
         unfold exterior_point at xincl,
         unfold neighborhood at xincl,
         simp at xincl,
@@ -164,7 +173,7 @@ begin
     {
         simp,
         intros H,
-        unfold clojure_set, 
+        unfold closure, 
         unfold exterior_point,
         unfold neighborhood,
         simp,
@@ -179,28 +188,6 @@ begin
     }
 end
 
-
-/-
-theorem set_of_interion_open (s: set α) : is_open {x | interior_point x s} :=
-begin
-    have bar := (open_iff_all_int {x | interior_point x s}).mpr,
-    suffices h: ∀ (x : α), x ∈ {x : α | interior_point x s} → interior_point x {x : α | interior_point x s},
-    exact bar h,
-
-    intros x hx, 
-    refine (open_iff_all_int {x : α | interior_point x s}).mp _ x hx,
-    suggest,
-
-    have x: α, sorry,
-    have h: x ∈ {x | interior_point x s}, sorry,
-    have baz := bar x,
-
-
-
-    refine open_iff_all_int {x | interior_point x s},
-    simp,
-    intros x xint,
--/
 
 
 end topology
