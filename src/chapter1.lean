@@ -1,14 +1,44 @@
-import topology.basic
+import tactic.basic
+import data.set.basic
+import data.set.lattice
+
+--import topology.basic
+
+namespace topology
+
+open set
+
+universes u
+
+structure topological_space (α : Type u) :=
+(is_open        : set α → Prop)
+(is_open_univ   : is_open set.univ)
+(is_open_inter  : ∀s t, is_open s → is_open t → is_open (s ∩ t))
+(is_open_sUnion : ∀s, (∀t∈s, is_open t) → is_open (⋃₀ s))
+
+attribute [class] topological_space
 
 variables {α : Type*} {β : Type*}
-variables [t: topological_space α]
+variables [topo: topological_space α]
 
-include t
+include topo
+
+def is_open (s : set α) : Prop := topological_space.is_open topo s
+def is_closed (s : set α) : Prop := is_open sᶜ
+
+lemma is_open_sUnion {s : set (set α)} (h : ∀t ∈ s, is_open t) : is_open (⋃₀ s) :=
+topological_space.is_open_sUnion topo s h
+
 
 -- page 5
-def neighborhood (s : set α) (x : α) := ∃ V, t.is_open V ∧ (x ∈ V) ∧ (V ⊆ s)
+def neighborhood (s : set α) (x : α) := ∃ V, is_open V ∧ (x ∈ V) ∧ (V ⊆ s)
 
 def interior_point (x : α) (s : set α) := neighborhood s x 
+def exterior_point (x : α) (s : set α) := neighborhood sᶜ x
+
+def interior_set (s : set α) := {x | interior_point x s}
+def clojure_set (s : set α) := {x | ¬ exterior_point x s}
+
 
 lemma union_of_sub (s: set α) (f : α → set α) (hf : ∀ x ∈ s, x ∈ f x ∧ f x ⊆ s) :
      s = ⋃₀ (f '' s) :=
@@ -29,7 +59,8 @@ end
 
 -- page 6
 
-theorem open_iff_all_int {s: set α} : t.is_open s ↔ ∀ x ∈ s, interior_point x s :=
+-- a set is open iff all its points are interior
+theorem open_iff_all_int (s: set α) : is_open s ↔ ∀ x ∈ s, interior_point x s :=
 begin
     split,
     {   intros op x hx,
@@ -48,3 +79,128 @@ begin
         exact isOpen x hx,
     }
 end
+
+theorem interior_is_union_of_open (s : set α) :
+    interior_set s = ⋃₀ {s' | is_open s' ∧ s' ⊆ s} :=
+begin
+    ext,
+    simp,
+    split,
+    {   intros xint,
+        rcases xint with ⟨ V, isOpen, xin, Vin⟩,
+        exact ⟨ V, ⟨isOpen, Vin⟩, xin⟩,
+    },
+
+    {
+        simp,
+        intros s' isOpen sin' xin,
+        exact ⟨ s', isOpen, xin, sin' ⟩,
+    }
+end
+
+
+lemma mem_of_not_mem_compl {x : α } {s: set α}: x ∉ sᶜ → x ∈ s := 
+begin
+    exact set.not_not_mem.mp,
+end 
+
+lemma closed_inter_of_closed (ss: set (set α)) (h: ∀ s ∈ ss, is_closed s)
+    : is_closed ⋂₀ ss :=
+begin
+    unfold is_closed,
+    rw compl_sInter,
+    apply is_open_sUnion,
+    intros s hs,
+    simp at hs,
+    rcases hs  with ⟨t, tinss, scomp ⟩,
+    have tis_closed : is_closed t := h t tinss,
+    rw ← scomp,
+    exact tis_closed,
+end
+
+@[simp]
+lemma open_iff_closed_compl {s: set α} : is_open s ↔ is_closed sᶜ :=
+begin
+    unfold is_closed,
+    rw compl_compl,
+end
+
+theorem closure_is_intersection (s : set α) :
+    clojure_set s = ⋂₀ {t | is_closed t ∧ s ⊆ t} :=
+begin
+    ext,
+    split,
+    {
+        intros xincl,
+        unfold clojure_set at xincl,
+        unfold exterior_point at xincl,
+        unfold neighborhood at xincl,
+        simp at xincl,
+
+        let U := ⋂₀ {t | is_closed t ∧ s ⊆ t},
+        change x ∈ U,
+
+        have closed_u : is_closed U, {
+            apply closed_inter_of_closed,
+            intros t tinU, 
+            rw mem_set_of_eq at tinU,
+            exact tinU.1
+        },
+
+        have inSC : Uᶜ ⊆ sᶜ, {
+            rw compl_subset_compl,
+            intros a ha,
+            rw mem_sInter,
+            intros t tinU,
+            rw mem_set_of_eq at tinU,
+            exact tinU.2 ha,
+        },
+
+        rw ← compl_compl U at closed_u,
+        have baz := mt (xincl Uᶜ closed_u) (not_not.mpr inSC),
+        have baz' : x ∈ U := mem_of_not_mem_compl baz,
+        exact baz',
+    },
+    {
+        simp,
+        intros H,
+        unfold clojure_set, 
+        unfold exterior_point,
+        unfold neighborhood,
+        simp,
+        intros t t_open x_in_t, 
+        rw not_subset,
+        have := mt(H tᶜ t_open) (not_not.mpr x_in_t),
+
+        cases (nonempty_of_not_subset this) with a ain,
+        use a,
+        simp,
+        exact ⟨ mem_of_not_mem_compl (not_mem_of_mem_diff ain),  mem_of_mem_diff ain ⟩, 
+    }
+end
+
+
+/-
+theorem set_of_interion_open (s: set α) : is_open {x | interior_point x s} :=
+begin
+    have bar := (open_iff_all_int {x | interior_point x s}).mpr,
+    suffices h: ∀ (x : α), x ∈ {x : α | interior_point x s} → interior_point x {x : α | interior_point x s},
+    exact bar h,
+
+    intros x hx, 
+    refine (open_iff_all_int {x : α | interior_point x s}).mp _ x hx,
+    suggest,
+
+    have x: α, sorry,
+    have h: x ∈ {x | interior_point x s}, sorry,
+    have baz := bar x,
+
+
+
+    refine open_iff_all_int {x | interior_point x s},
+    simp,
+    intros x xint,
+-/
+
+
+end topology
