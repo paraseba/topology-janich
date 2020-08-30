@@ -1,0 +1,8 @@
+[package]
+name = "topology-janich"
+version = "0.1"
+lean_version = "leanprover-community/lean:3.19.0"
+path = "src"
+
+[dependencies]
+mathlib = {git = "https://github.com/leanprover-community/mathlib", rev = "dfdb38ab4c18155c21d24c4e60c302d9b00000c9"}
