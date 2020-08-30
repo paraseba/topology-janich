@@ -188,6 +188,41 @@ begin
     }
 end
 
+lemma closed_iff_equal_to_closure (s : set α) : 
+    is_closed s ↔ s = closure s :=
+begin
+    rw closure_is_intersection,
+    split,
+    {   intros closed,
+        ext,
+        split,
+        {
+            intros xin t tin,
+            exact tin.2 xin,
+        },
+        {
+            intros xin,
+            simp at xin,
+            exact xin s closed subset.rfl,
+        },
+    },
+    {
+        intros sint,
+        rw sint,
+        apply closed_inter_of_closed,
+        intros t tin,
+        exact tin.1,
+    }
+
+end
+
+lemma open_iff_compl_eq_closure (s : set α) :
+    is_open s ↔ sᶜ = closure sᶜ :=
+begin
+    rw ← closed_iff_equal_to_closure,
+    simp,
+end
+
 
 
 end topology
