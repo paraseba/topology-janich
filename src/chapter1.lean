@@ -1,6 +1,8 @@
 import tactic.basic
+import tactic.linarith
 import data.set.basic
 import data.set.lattice
+import data.real.basic
 
 --import topology.basic
 
@@ -223,6 +225,75 @@ begin
     simp,
 end
 
+omit topo
+
+structure metric_space (α : Type u) :=
+(metric : α → α → ℝ)
+(positive : ∀ x y, x ≠ y → metric x y > 0)
+(zero_self : ∀ x, metric x x = 0)
+(symm : ∀ x y, metric x y = metric y x)
+(triangle : ∀ x y z, metric x z ≤ metric x y + metric y z)
+
+attribute [class] metric_space
+
+variable [ms : metric_space α]
+
+def εBall (x : α) (ε : ℝ) := { y : α | ms.metric x y < ε}
+
+include ms
+
+lemma smaller_ball_subset {x : α} (a b : ℝ) (h : a ≤ b)
+    : εBall x a ⊆  εBall x b :=
+begin
+    intros y yina,
+    unfold εBall,
+    have H : ms.metric x y < b :=
+        calc ms.metric x y < a : yina
+            ... ≤ b : h,
+    simp [H],
+end
+
+def metric_topology (ms : metric_space α) : topological_space α :=
+{
+    is_open := λ s, ∀ x ∈ s, ∃ ε > 0, εBall x ε ⊆ s,
+    is_open_univ := λ _ _, ⟨ 1, by linarith, by simp ⟩,
+
+    is_open_inter := by {
+        intros s t sball tball x xin,
+        rcases sball x xin.1 with ⟨εs,εspos,hεs⟩, 
+        rcases tball x xin.2 with ⟨εt,εtpos,hεt⟩, 
+        use min εs εt,
+        split,
+
+        {exact lt_min εspos εtpos,},
+
+        {
+            apply subset_inter,
+            {
+                have : εBall x (min εs εt) ⊆ εBall x εs, {
+                    apply smaller_ball_subset,
+                    apply min_le_left
+                },
+                exact subset.trans this hεs,
+            },
+            {
+                have : εBall x (min εs εt) ⊆ εBall x εt, {
+                    apply smaller_ball_subset,
+                    apply min_le_right
+                },
+                exact subset.trans this hεt,
+            }
+        }
+    },
+
+    is_open_sUnion := by {
+        intros ss h x xin,
+        rw mem_sUnion at xin,
+        rcases xin with ⟨ t, tinss, xint ⟩,
+        rcases h t tinss x xint with ⟨ ε, εpos, ball_in_t ⟩, 
+        exact ⟨ ε, εpos, subset_sUnion_of_subset ss t ball_in_t tinss ⟩
+    }
+}
 
 
 end topology
