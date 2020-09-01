@@ -10,8 +10,9 @@ namespace topology
 
 open set
 
-universes u
+universes u w
 
+-- Copied from mathlib
 structure topological_space (α : Type u) :=
 (is_open        : set α → Prop)
 (is_open_univ   : is_open set.univ)
@@ -30,6 +31,14 @@ def is_closed (s : set α) : Prop := is_open sᶜ
 
 lemma is_open_sUnion {s : set (set α)} (h : ∀t ∈ s, is_open t) : is_open (⋃₀ s) :=
 topological_space.is_open_sUnion topo s h
+
+lemma is_open_Union {ι : Sort w} {f : ι → set α} (h : ∀i, is_open (f i)) : is_open (⋃i, f i) :=
+is_open_sUnion $ by rintro _ ⟨i, rfl⟩; exact h i
+
+lemma is_open_bUnion {s : set β} {f : β → set α} (h : ∀i∈s, is_open (f i)) :
+  is_open (⋃i∈s, f i) :=
+is_open_Union $ assume i, is_open_Union $ assume hi, h i hi
+
 
 
 -- page 5
@@ -295,5 +304,50 @@ def metric_topology (ms : metric_space α) : topological_space α :=
     }
 }
 
+omit ms
+
+def subspace (U : set α) (ts : topological_space α) : topological_space U :=
+{
+    is_open := λ s, ∃ (V : set α), is_open V ∧ (V ∩ U) = subtype.val '' s,
+
+    is_open_univ := ⟨univ, ts.is_open_univ, by {simp [univ_inter]}⟩,
+
+    is_open_inter := by {
+        rintros s t ⟨V,OV,VU⟩ ⟨W,OW,WU⟩,
+        use V ∩ W,
+        split,
+        {exact ts.is_open_inter V W OV OW,},
+        {
+            rw ← image_inter,
+            {
+                suffices : V ∩ W ∩ U = V ∩ U ∩ W ∩ U,
+                {   rw this,
+                    rw VU,
+                    rw inter_assoc,
+                    rw WU,
+                },
+                show V ∩ W ∩ U = V ∩ U ∩ W ∩ U, tidy,
+            },
+            {exact subtype.val_injective}
+
+        }
+    },
+
+    is_open_sUnion := by {
+        intros ss h,
+        choose! s op eq using h,
+        use ⋃i:ss, s i,
+        split,
+        {
+            refine is_open_Union _,
+            finish,
+        },
+        {
+            rw Union_inter,
+            rw sUnion_eq_Union,
+            finish [image_Union],
+        }
+    },
+}
 
 end topology
