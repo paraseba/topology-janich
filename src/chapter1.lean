@@ -4,6 +4,7 @@ import data.set.basic
 import data.set.lattice
 import data.real.basic
 import data.set.finite
+import .sets
 
 --import topology.basic
 
@@ -55,11 +56,6 @@ begin
     unfold is_closed,
     rw compl_compl,
 end
-
-lemma mem_of_not_mem_compl {x : α } {s: set α}: x ∉ sᶜ → x ∈ s := 
-begin
-    exact set.not_not_mem.mp,
-end 
 
 
 -- page 5
@@ -148,7 +144,7 @@ begin
 
         rw ← compl_compl U at closed_u,
         have baz := mt (xincl Uᶜ closed_u) (not_not.mpr inSC),
-        have baz' : x ∈ U := mem_of_not_mem_compl baz,
+        have baz' : x ∈ U := set.not_not_mem.mp baz,
         exact baz',
     },
     {
@@ -165,7 +161,7 @@ begin
         cases (nonempty_of_not_subset this) with a ain,
         use a,
         simp,
-        exact ⟨ mem_of_not_mem_compl (not_mem_of_mem_diff ain),  mem_of_mem_diff ain ⟩, 
+        exact ⟨ set.not_not_mem.mp (not_mem_of_mem_diff ain),  mem_of_mem_diff ain ⟩, 
     }
 end
 
@@ -177,23 +173,6 @@ begin
     exact h.1
 end
 
-
-lemma union_of_sub (s: set α) (f : α → set α) (hf : ∀ x ∈ s, x ∈ f x ∧ f x ⊆ s) :
-     s = ⋃₀ (f '' s) :=
-begin
-    ext,
-    split,
-    simp at *,
-    {
-        intros xs,
-        exact ⟨ x, xs, (hf x xs).1 ⟩ 
-    },
-    {
-        simp,
-        intros x' xs' xfx',
-        exact (hf x' xs').2 xfx',
-    }
-end
 
 -- page 6
 
@@ -292,10 +271,9 @@ structure metric_space (α : Type u) :=
 attribute [class] metric_space
 
 variable [ms : metric_space α]
+include ms
 
 def εBall (x : α) (ε : ℝ) := { y : α | ms.metric x y < ε}
-
-include ms
 
 lemma smaller_ball_subset {x : α} (a b : ℝ) (h : a ≤ b)
     : εBall x a ⊆  εBall x b :=
@@ -560,82 +538,13 @@ def subbasis_generated (basis : set (set α)) : topological_space α :=
         --use baz',
         use (λ (ss : (set (set α)) × (set (set α ))), (ss.1) ∩ (ss.2)) '' { ss | ss ∈ (scomp.prod tcomp) },
 
-
-        -- ((a ∩ b) ∪ (c ∩ d))  ∩  ((a' ∩ b') ∪ (c' ∩ d'))
-        -- (a ∩ b) ∩ ( a' ∩ b') ∪ (a ∩ b) ∩ ( c' ∩ d')  ∪ ...
-        --use scomp ∩ tcomp,
-
-        split,
-        {
-            intros ss ssin,
-            have caca : ss ∈ scomp, {sorry},
-            exact scond ss caca,
-        },
-        {
-
-            rw [← sexp, ← texp],
-            simp ,
-
-
-
-            rw ← sUnion_inter_sUnion,
-            simp,
-            rw sInter_image,
-
-
-            ext,
-            --simp at *,
-            split,
-            {
-                intros h,
-                choose! u uin uns using h,
-                rw [← sexp, ← texp],
-                rw image_union at uin,
-
-
-
-
-
-
-            },
-            {},
-
-
-        }
-
-
-
---(∀ (ss : set (set α)), ss ∈ scomp ∪ tcomp → (ss.finite ∧ ∀ (s : set α), s ∈ ss → s ∈ basis)) ∧ 
-
---⋃₀((λ (i : set (set α)), ⋂₀i) '' (scomp ∪ tcomp)) = s ∩ t
+        sorry
 
     },
 
+    is_open_sUnion := sorry
 }
 
-example (ss: set (set α)) (sb: is_subbasis (subbasis_generated ss)) : sb.sets = ss
-
-def generated_has_subbasis
-    {ss : set (set α)}
-    (sb: is_subbasis (subbasis_generated ss)) :
-    sb.sets = ss :=
-begin
-sorry
-end
-
-
---{ u1 u2 u3}
---{ {i1 i2 i3} U {...} U {....}}
-
-/-
-metric : α → α → ℝ)
-(positive : ∀ x y, x ≠ y → metric x y > 0)
-(zero_self : ∀ x, metric x x = 0)
-(symm : ∀ x y, metric x y = metric y x)
-(triangle : ∀ x y z, metric x z ≤ metric x y + metric y z)
--/
-
---theorem ratio_balls_basis : basis []
-
+end continuity
 
 end topology
