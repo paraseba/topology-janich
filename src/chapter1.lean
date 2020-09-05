@@ -78,7 +78,7 @@ begin
     unfold closure, unfold exterior_point, unfold neighborhood,
     intros ex,
     rcases ex with ⟨ _, _, xint, tincomp⟩,
-    have contra : x ∈ sᶜ := tincomp xint,
+    have : x ∈ sᶜ := tincomp xint,
     contradiction,
 end
 
@@ -106,9 +106,9 @@ begin
     intros s hs,
     simp at hs,
     rcases hs  with ⟨t, tinss, scomp ⟩,
-    have tis_closed : is_closed t := h t tinss,
+    have : is_closed t := h t tinss,
     rw ← scomp,
-    exact tis_closed,
+    exact this,
 end
 
 theorem closure_is_intersection (s : set α) :
@@ -180,9 +180,11 @@ end
 theorem open_iff_all_int (s: set α) : is_open s ↔ ∀ x ∈ s, interior_point x s :=
 begin
     split,
-    {   intros op x hx,
+    {   show is_open s → ∀ x ∈ s, interior_point x s,
+        intros op x hx,
         exact ⟨ s, op, hx, by refl ⟩ },
     {
+        show (∀ x ∈ s, interior_point x s) → is_open s, 
         intros h,
         choose! V isOpen xinV Vins using h,
         rw union_of_sub s V (λ x xin, ⟨ xinV x xin , Vins x xin⟩),
@@ -203,11 +205,14 @@ begin
     ext,
     simp,
     split,
-    {   intros xint,
+    {
+        show x ∈ interior s → ∃ t, (is_closed tᶜ ∧ t ⊆ s) ∧ x ∈ t,
+        intros xint,
         rcases xint with ⟨ V, isOpen, xin, Vin⟩,
         exact ⟨ V, ⟨open_iff_closed_compl.mp isOpen, Vin⟩, xin⟩,
     },
     {
+        show (∃ t, (is_closed tᶜ ∧ t ⊆ s) ∧ x ∈ t) → x ∈ interior s,
         simp,
         intros s' isOpen sin' xin,
         exact ⟨ s', open_iff_closed_compl.mpr isOpen, xin, sin' ⟩,
@@ -229,20 +234,23 @@ lemma closed_iff_equal_to_closure {s : set α} :
 begin
     rw closure_is_intersection,
     split,
-    {   intros closed,
+    {   show is_closed s → s = ⋂₀{t | is_closed t ∧ s ⊆ t},
+        intros closed,
         ext,
         split,
         {
+            show x ∈ s → x ∈ ⋂₀{t | is_closed t ∧ s ⊆ t},
             intros xin t tin,
             exact tin.2 xin,
         },
         {
+            show x ∈ ⋂₀{t | is_closed t ∧ s ⊆ t} → x ∈ s,
             intros xin,
             simp at xin,
             exact xin s closed subset.rfl,
         },
     },
-    {
+    {   show s = ⋂₀{t | is_closed t ∧ s ⊆ t} → is_closed s,
         intros sint,
         rw sint,
         apply closed_inter_of_closed,
