@@ -91,12 +91,6 @@ begin
     exact (hx O Oopen xinO) (subset.trans Ointc h)
 end
 
-lemma closure_idempotent {s : set α} : closure (closure s) = closure s :=
-begin
-    sorry
-end
-
-
 lemma closed_inter_of_closed (ss: set (set α)) (h: ∀ s ∈ ss, is_closed s)
     : is_closed ⋂₀ ss :=
 begin
@@ -172,7 +166,6 @@ begin
     intros _ h,
     exact h.1
 end
-
 
 -- page 6
 
@@ -266,6 +259,12 @@ begin
     rw ← closed_iff_equal_to_closure,
     simp,
 end
+
+
+lemma closure_idempotent {s : set α} :
+closure (closure s) = closure s :=
+    (closed_iff_equal_to_closure.mp closure_closed).symm
+
 
 omit topo
 
