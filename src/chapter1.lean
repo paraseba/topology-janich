@@ -19,7 +19,7 @@ structure topological_space (α : Type u) :=
 (is_open        : set α → Prop)
 (is_open_univ   : is_open set.univ)
 (is_open_inter  : ∀s t, is_open s → is_open t → is_open (s ∩ t))
-(is_open_sUnion : ∀s, (∀t∈s, is_open t) → is_open (⋃₀ s))
+(is_open_sUnion : ∀s:(set (set α)), (∀t∈s, is_open t) → is_open (⋃₀ s))
 
 attribute [class] topological_space
 
@@ -293,7 +293,7 @@ begin
     simp [H],
 end
 
-def metric_topology (ms : metric_space α) : topological_space α :=
+instance metric_topology : topological_space α :=
 {
     is_open := λ s, ∀ x ∈ s, ∃ ε > 0, εBall x ε ⊆ s,
     is_open_univ := λ _ _, ⟨ 1, by linarith, by simp ⟩,
@@ -334,6 +334,33 @@ def metric_topology (ms : metric_space α) : topological_space α :=
         exact ⟨ ε, εpos, subset_sUnion_of_subset ss t ball_in_t tinss ⟩
     }
 }
+
+lemma εBall_open {ε : ℝ} (x : α) (h: ε > 0) : is_open (εBall x ε) :=
+begin
+    intros y xinball,
+
+    use ε - ms.metric x y, 
+    split,
+    {
+        show 0 < ε - ms.metric x y,
+        exact sub_pos.mpr xinball,
+    },
+    {
+        show εBall y (ε - ms.metric x y) ⊆ εBall x ε,
+        intros z zin,
+        exact
+          calc ms.metric x z ≤ ms.metric x y + ms.metric y z : by apply ms.triangle
+          ... <  ms.metric x y + (ε - ms.metric x y) : add_lt_add_left zin _
+          ... = ε : by {ring},
+    }
+end
+
+lemma center_in_ball {ε : ℝ} (x : α) (h: ε > 0) : x ∈ εBall x ε :=
+begin
+    change ms.metric x x < ε,
+    rw ms.zero_self,
+    exact h
+end
 
 omit ms
 
@@ -382,27 +409,15 @@ def subspace (U : set α) (ts : topological_space α) : topological_space U :=
 }
 
 
-/-
 def disjoint_union (s: topological_space α) (t: topological_space β) :
     topological_space (α ⊕ β) :=
 {
     is_open := λ s:set (α ⊕ β), ∃ (u: set α) (v: set β), (u ⊕ v) = s, 
 
-    is_open_univ := by {
-        use univ,
-        use univ,
-
-
-
-    }
+    is_open_univ := sorry,
+    is_open_inter := sorry,
+    is_open_sUnion := sorry,
 }
--/
-
-structure basis [topological_space α]
-(sets : set (set α))
-(sets_open : ∀ s ∈ sets, is_open s)
-(union_of_open : ∀ s, is_open s → ∃ ss ⊆ sets, ⋃₀ ss = s)
-
 
 noncomputable def reals_metric_space : metric_space ℝ :=
 {
@@ -426,6 +441,17 @@ noncomputable def reals_metric_space : metric_space ℝ :=
     triangle := λ x y z, by apply abs_sub_le, 
 }
 
+noncomputable instance : metric_space ℝ := reals_metric_space
+
+--noncomputable def reals_metric_topology : topological_space ℝ :=  metric_topology 
+--noncomputable instance : topological_space ℝ := reals_metric_topology
+
+structure basis [topological_space α]
+(sets : set (set α))
+(sets_open : ∀ s ∈ sets, is_open s)
+(union_of_open : ∀ s, is_open s → ∃ ss ⊆ sets, ⋃₀ ss = s)
+
+
 structure is_subbasis (ts: topological_space α) :=
 (sets : set (set α))
 (sets_open : ∀ s ∈ sets, ts.is_open s)
@@ -436,6 +462,35 @@ structure is_subbasis (ts: topological_space α) :=
             (∀ (ss ∈ sss), set.finite ss ∧ ∀ s ∈ ss, s ∈ sets) ∧
             ⋃₀ ((λ i, ⋂₀ i) '' sss) = s )
 
+
+def subbasis_generated (basis : set (set α)) : topological_space α :=
+{
+    is_open := λ s, 
+        ∃ sss : set (set (set α)),
+            (∀ ss ∈ sss, set.finite ss ∧ ∀ s ∈ ss, s ∈ basis) ∧
+            ⋃₀ ((λ i, ⋂₀ i) '' sss) = s,
+
+    is_open_univ := ⟨ {{}}, by simp ⟩ ,
+
+    is_open_inter := λ s t, by {
+        intros os ot,
+        choose! scomp scond sexp using os,
+        choose! tcomp tcond texp using ot,
+        have bar := (⋃p ∈ scomp.prod tcomp, (p : (set (set α)) × (set (set α ))).1 ∩ p.2),
+
+        have baz := { ss | ss ∈ (scomp.prod tcomp) },
+
+        have baz' := (λ (ss : (set (set α)) × (set (set α ))), (ss.1) ∩ (ss.2)) '' baz,
+
+        --use baz',
+        use (λ (ss : (set (set α)) × (set (set α ))), (ss.1) ∩ (ss.2)) '' { ss | ss ∈ (scomp.prod tcomp) },
+
+        sorry
+
+    },
+
+    is_open_sUnion := sorry
+}
 
 section continuity
 variables [ta: topological_space α] [tb: topological_space β]
@@ -522,35 +577,35 @@ begin
     }
 end 
 
+omit ta tb
 
-def subbasis_generated (basis : set (set α)) : topological_space α :=
-{
-    is_open := λ s, 
-        ∃ sss : set (set (set α)),
-            (∀ ss ∈ sss, set.finite ss ∧ ∀ s ∈ ss, s ∈ basis) ∧
-            ⋃₀ ((λ i, ⋂₀ i) '' sss) = s,
+-- page 13
 
-    is_open_univ := ⟨ {{}}, by simp ⟩ ,
+example
+ (f : ℝ → ℝ)
+ (cont: continuous f) :
+    ∀ (x0 : ℝ) (ε > 0), ∃ δ > 0, ∀ (x : ℝ), abs(x - x0) < δ → abs (f x - f x0)  < ε :=
+begin
+    intros x0 e epos,
+    have open_x := cont (εBall (f x0) e) (εBall_open (f x0) epos),
 
-    is_open_inter := λ s t, by {
-        intros os ot,
-        choose! scomp scond sexp using os,
-        choose! tcomp tcond texp using ot,
-        have bar := (⋃p ∈ scomp.prod tcomp, (p : (set (set α)) × (set (set α ))).1 ∩ p.2),
+    have : ∃ (ε > 0),  εBall x0 ε ⊆ f ⁻¹' εBall (f x0) e :=
+        open_x x0 (center_in_ball (f x0) epos),
 
-        have baz := { ss | ss ∈ (scomp.prod tcomp) },
-
-        have baz' := (λ (ss : (set (set α)) × (set (set α ))), (ss.1) ∩ (ss.2)) '' baz,
-
-        --use baz',
-        use (λ (ss : (set (set α)) × (set (set α ))), (ss.1) ∩ (ss.2)) '' { ss | ss ∈ (scomp.prod tcomp) },
-
-        sorry
-
-    },
-
-    is_open_sUnion := sorry
-}
+    rcases this with ⟨ δ, δpos, ball_in ⟩,
+    use δ,
+    split,
+    {exact δpos,},
+    {
+        intros x xin,
+        have : x ∈ @εBall ℝ reals_metric_space x0 δ := by {rw abs_sub at xin, exact xin},
+        have : x ∈ f ⁻¹' @εBall ℝ reals_metric_space (f x0) e := ball_in this,
+        simp at this,
+        rw ← neg_sub,
+        rw abs_neg,
+        exact this,
+    }
+end
 
 end continuity
 
