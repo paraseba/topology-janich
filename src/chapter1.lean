@@ -577,8 +577,6 @@ begin
     }
 end 
 
-omit ta tb
-
 -- page 13
 
 example
@@ -606,6 +604,87 @@ begin
         exact this,
     }
 end
+
+class homeomorphism (f : α → β) :=
+(inv : β → α)
+(left_inv : inv ∘ f = id)
+(right_inv : f ∘ inv = id)
+(cont: continuous f)
+(invcont: continuous inv)
+
+def has_homeomorphism (f : α → β) := nonempty (homeomorphism f)
+
+@[simp]
+lemma left_inverse_hom (f : α → β) (h: homeomorphism f) :
+    function.left_inverse h.inv f :=
+begin
+    intros x,
+    change (h.inv ∘ f) x = x,
+    rw h.left_inv,
+    refl
+end
+
+@[simp]
+lemma right_inverse_hom (f : α → β) (h: homeomorphism f) :
+    function.right_inverse h.inv f :=
+begin
+    intros x,
+    change (f ∘ h.inv) x = x,
+    rw h.right_inv,
+    refl
+end
+
+lemma homeo_of_open_iff_to_open (f : α → β) (b: function.bijective f) :
+    has_homeomorphism f ↔ (∀ U, is_open U ↔ is_open (f '' U)) :=
+begin
+    split,
+    {
+        intros has,
+        have h := has.some,
+        intros U,
+        split,
+        {
+            show is_open U → is_open (f '' U),
+            intro Uopen,
+
+            have : f '' U = (h.inv)⁻¹' U, {
+                rw image_eq_preimage_of_inverse,
+                simp, simp,
+            },
+
+            have bar := h.invcont,
+            have baz := bar U Uopen,
+            rw ← this at baz,
+            exact baz,
+        },
+        {
+            show is_open (f '' U) → is_open U,
+            intros imgopen,
+
+            have : U = f⁻¹' (f '' U), {
+                rw preimage_image_eq,
+                apply function.left_inverse.injective,
+                exact left_inverse_hom f h,
+            },
+
+            have bar := h.cont,
+            have baz := bar (f '' U) imgopen,
+            rw ← this at baz,
+            exact baz,
+        }
+    },
+    {
+        intros h,
+        exact nonempty.intro {
+            inv := sorry,
+            left_inv := sorry,
+            right_inv := sorry,
+            cont := sorry,
+            invcont := sorry,
+        }, 
+    }
+end
+
 
 end continuity
 
