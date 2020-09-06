@@ -684,8 +684,33 @@ begin
         }, 
     }
 end
-
-
 end continuity
+
+section caracterization
+
+def connected (ts: topological_space α) :=
+    ¬ ∃ U V, ts.is_open U ∧ ts.is_open V ∧ U ∩ V = ∅ ∧ U.nonempty ∧ V.nonempty
+
+include topo
+
+lemma connected_no_open_close (h: connected topo) :
+    ∀ (s: set α), is_open s →  is_closed s → s = univ ∨ s = ∅ :=
+begin
+    intros s opens closeds,
+    have h1 : is_open sᶜ := closeds,
+    have h2 : s ∩ sᶜ = ∅ := inter_compl_self _,
+    have := forall_not_of_not_exists h s ,
+    push_neg at this,
+
+    have : s.nonempty → ¬ sᶜ.nonempty := this sᶜ opens h1 h2, 
+    rw not_nonempty_iff_eq_empty at this,
+    rw compl_empty_iff at this,
+    by_cases H : s.nonempty,
+    {exact or.inl (this H)},
+    {exact or.inr (not_nonempty_iff_eq_empty.mp H)}
+end
+
+
+end caracterization
 
 end topology
