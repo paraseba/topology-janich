@@ -443,7 +443,7 @@ noncomputable def reals_metric_space : metric_space ℝ :=
 
 noncomputable instance : metric_space ℝ := reals_metric_space
 
---noncomputable def reals_metric_topology : topological_space ℝ :=  metric_topology 
+--noncomputable def reals_metric_topology : topological_space ℝ :=  topology.metric_topology _
 --noncomputable instance : topological_space ℝ := reals_metric_topology
 
 structure basis [topological_space α]
@@ -596,8 +596,8 @@ begin
     {exact δpos,},
     {
         intros x xin,
-        have : x ∈ @εBall ℝ reals_metric_space x0 δ := by {rw abs_sub at xin, exact xin},
-        have : x ∈ f ⁻¹' @εBall ℝ reals_metric_space (f x0) e := ball_in this,
+        have : x ∈ εBall x0 δ := by {rw abs_sub at xin, exact xin},
+        have : x ∈ f ⁻¹' εBall (f x0) e := ball_in this,
         simp at this,
         rw ← neg_sub,
         rw abs_neg,
@@ -689,20 +689,26 @@ end continuity
 section caracterization
 
 def connected (ts: topological_space α) :=
-    ¬ ∃ U V, ts.is_open U ∧ ts.is_open V ∧ U ∩ V = ∅ ∧ U.nonempty ∧ V.nonempty
+    ¬ ∃ U V,
+        ts.is_open U ∧
+        ts.is_open V ∧
+        U ∪ V = univ ∧
+        U ∩ V = ∅ ∧
+        U.nonempty ∧
+        V.nonempty
 
-include topo
 
-lemma connected_no_open_close (h: connected topo) :
+lemma connected_no_open_close [topo : topological_space α] (h: connected topo) :
     ∀ (s: set α), is_open s →  is_closed s → s = univ ∨ s = ∅ :=
 begin
     intros s opens closeds,
     have h1 : is_open sᶜ := closeds,
-    have h2 : s ∩ sᶜ = ∅ := inter_compl_self _,
+    have h2 : s ∪ sᶜ = univ := union_compl_self _,
+    have h3 : s ∩ sᶜ = ∅ := inter_compl_self _,
     have := forall_not_of_not_exists h s ,
     push_neg at this,
 
-    have : s.nonempty → ¬ sᶜ.nonempty := this sᶜ opens h1 h2, 
+    have : s.nonempty → ¬ sᶜ.nonempty := this sᶜ opens h1 h2 h3, 
     rw not_nonempty_iff_eq_empty at this,
     rw compl_empty_iff at this,
     by_cases H : s.nonempty,
@@ -710,6 +716,117 @@ begin
     {exact or.inr (not_nonempty_iff_eq_empty.mp H)}
 end
 
+def unit_interval : set ℝ := {x | 0 ≤ x  ∧  x ≤ 1}
+def unit_interval_t := { x:ℝ // 0 ≤ x  ∧  x ≤ 1}
+
+instance : has_zero unit_interval_t := {
+    zero := ⟨0, and.intro rfl.ge zero_le_one ⟩ 
+}
+
+instance : has_one unit_interval_t := {
+    one := ⟨1, and.intro zero_le_one rfl.ge ⟩ 
+}
+
+noncomputable instance unit_interval_topology : topological_space unit_interval_t :=
+    subspace unit_interval (topology.metric_topology)
+
+
+def path_connected (ts: topological_space α) :=
+    ∀ (a b : α), ∃ (f: unit_interval_t → α), continuous f ∧ f 0 = a ∧ f 1 = b
+
+
+variables [ta: topological_space α] [tb: topological_space β]
+
+theorem connected_of_image {f : α → β} (cont: continuous f):
+    connected ta → connected (subspace (range f) tb) :=
+begin
+    intros fcontinuous,
+
+    show connected (subspace (range f) tb),
+
+    unfold connected,
+    by_contradiction H,
+    rcases H with ⟨ U, V, openU, openV, union_univ, disjoint, nonemptyU, nonemptyV⟩,
+
+    show false,
+
+    have hu : ∃ (U':set β),
+                is_open U' ∧
+                nonempty U' ∧
+                U' ∩ (range f) = coe '' U, {
+        rcases openU with ⟨ B, closedB, BintRange ⟩ ,
+        have :  nonempty ↥B, {
+            have caca := nonempty_image_iff.mpr nonemptyU ,
+            rw ← BintRange at caca,
+            exact nonempty.to_subtype (nonempty_inter_iff_nonempty caca).left,
+        },
+        exact ⟨ B, closedB, this, BintRange ⟩, 
+    },
+
+    have hv : ∃ (V':set β),
+                is_open V' ∧
+                nonempty V' ∧
+                V' ∩ (range f) = coe '' V, {
+        rcases openV with ⟨ B, closedB, BintRange ⟩ ,
+        have :  nonempty ↥B, {
+            have caca := nonempty_image_iff.mpr nonemptyV ,
+            rw ← BintRange at caca,
+            exact nonempty.to_subtype (nonempty_inter_iff_nonempty caca).left,
+        },
+        exact ⟨ B, closedB, this, BintRange ⟩, 
+    },
+
+    rcases hu with ⟨ U', openU', nonemptyU', U'inter ⟩,
+    rcases hv with ⟨ V', openV', nonemptyV', V'inter ⟩,
+
+    have neu_pre : (f⁻¹' U').nonempty, {
+        apply preimage_nonempty_of_inter_range,
+        rw U'inter,
+        apply set.nonempty.image,
+        exact nonemptyU,
+    },
+
+    have nev_pre : (f⁻¹' V').nonempty, {
+        apply preimage_nonempty_of_inter_range,
+        rw V'inter,
+        apply set.nonempty.image,
+        exact nonemptyV,
+    },
+
+    have hu : is_open (f⁻¹' U'), {
+        apply cont, 
+        exact openU',
+    },
+
+    have hv : is_open (f⁻¹' V'), {
+        apply cont, 
+        exact openV',
+    },
+
+    have hinter : (f⁻¹' U') ∩ (f⁻¹' V') = ∅ :=
+        calc (f⁻¹' U') ∩ (f⁻¹' V') = f⁻¹' (U' ∩ V')      : by rw preimage_inter
+            ... = f⁻¹' ((U' ∩ range f) ∩ (V' ∩ range f)) : by simp [preimage_range_inter]
+            ... = f⁻¹' ((coe '' U) ∩ (coe '' V))         : by simp [U'inter, V'inter]
+            ... = f⁻¹' (coe '' (U ∩ V))                  : by simp [image_inter, subtype.coe_injective]
+            ... = f⁻¹' (coe '' ∅)                        : by rw disjoint
+            ... = ∅                                      : by {rw image_empty, rw preimage_empty},
+
+    have hunion : (f⁻¹' U') ∪ (f⁻¹' V') = univ :=
+        calc (f⁻¹' U') ∪ (f⁻¹' V') = f⁻¹' (U' ∩ range f) ∪ f⁻¹' (V' ∩ range f) 
+                                                         : by simp [preimage_range_inter]
+            ... = f⁻¹' (coe '' U) ∪ f⁻¹' (coe '' V)      : by rw [U'inter, V'inter]
+            ... = f⁻¹' ( (coe '' U) ∪ (coe '' V) )       : by rw preimage_union
+            ... = f⁻¹' (coe '' (U ∪ V))                  : by rw image_union
+            ... = f⁻¹' (coe '' univ)                     : by rw union_univ
+            ... = f⁻¹' univ                              : by simp [subtype.coe_image_univ]
+            ... = univ                                   : by rw preimage_univ,
+
+
+    unfold connected at fcontinuous,
+    push_neg at fcontinuous,
+    exact fcontinuous (f⁻¹' U') (f⁻¹' V') hu hv hunion hinter neu_pre nev_pre,
+end
+ 
 
 end caracterization
 
