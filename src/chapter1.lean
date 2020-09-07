@@ -756,9 +756,9 @@ begin
                 U' ∩ (range f) = coe '' U, {
         rcases openU with ⟨ B, closedB, BintRange ⟩ ,
         have :  nonempty ↥B, {
-            have caca := nonempty_image_iff.mpr nonemptyU ,
-            rw ← BintRange at caca,
-            exact nonempty.to_subtype (nonempty_inter_iff_nonempty caca).left,
+            have := nonempty_image_iff.mpr nonemptyU ,
+            rw ← BintRange at this,
+            exact nonempty.to_subtype (nonempty_inter_iff_nonempty this).left,
         },
         exact ⟨ B, closedB, this, BintRange ⟩, 
     },
@@ -769,9 +769,9 @@ begin
                 V' ∩ (range f) = coe '' V, {
         rcases openV with ⟨ B, closedB, BintRange ⟩ ,
         have :  nonempty ↥B, {
-            have caca := nonempty_image_iff.mpr nonemptyV ,
-            rw ← BintRange at caca,
-            exact nonempty.to_subtype (nonempty_inter_iff_nonempty caca).left,
+            have := nonempty_image_iff.mpr nonemptyV ,
+            rw ← BintRange at this,
+            exact nonempty.to_subtype (nonempty_inter_iff_nonempty this).left,
         },
         exact ⟨ B, closedB, this, BintRange ⟩, 
     },
