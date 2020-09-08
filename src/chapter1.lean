@@ -807,7 +807,40 @@ begin
     exact fcontinuous (f⁻¹' U') (f⁻¹' V') hu hv hunion hinter neu_pre nev_pre,
 end
  
+def hausdorff (ts: topological_space α) :=
+    ∀ x y : α, x ≠ y →
+        ∃ U V : set α, 
+            neighborhood U x ∧ 
+            neighborhood V y ∧ 
+            U ∩ V = ∅
+
 
 end caracterization
+
+def sequence {α : Type*} := ℕ → α
+
+
+include topo
+def limit (seq: sequence) (l: α) :=
+    ∀ (U : set α), (neighborhood U l) →  ∃ n0, ∀ n, n ≥ n0 → seq n ∈ U
+
+theorem unique_limit_of_hausdorff (h: hausdorff topo) (seq: sequence) (l m : α) :
+    (limit seq l) → (limit seq m) → l = m :=
+begin
+    intros ll lm,
+    by_cases H: l = m, exact H,
+
+    rcases h l m H with ⟨ U, V, neiU, neiV, uvinter ⟩ ,
+    rcases ll U neiU with ⟨ n0u, hnu ⟩ ,
+    rcases lm V neiV with ⟨ n0v, hnv ⟩ ,
+    let n := max n0u n0v,
+    have h1 : seq n ∈ U := hnu n (le_max_left _ _),
+    have h2 : seq n ∈ V := hnv n (le_max_right _ _),
+    have : seq n ∈ U ∩ V := mem_inter h1 h2,
+    exfalso,
+    rw uvinter at this,
+    rw mem_empty_eq at this,
+    exact this
+end
 
 end topology
