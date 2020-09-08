@@ -748,60 +748,40 @@ begin
     by_contradiction H,
     rcases H with ⟨ U, V, openU, openV, union_univ, disjoint, nonemptyU, nonemptyV⟩,
 
-    show false,
+    have containing :
+        ∀ (W : set ↥(range f)), 
+            W.nonempty → (subspace (range f) tb).is_open W →
+                ∃ (s: set β),   is_open s ∧
+                                nonempty s ∧
+                                s ∩ (range f) = coe '' W ∧
+                                is_open (f⁻¹' s) ∧
+                                (f ⁻¹' s).nonempty , {
 
-    have hu : ∃ (U':set β),
-                is_open U' ∧
-                nonempty U' ∧
-                U' ∩ (range f) = coe '' U, {
-        rcases openU with ⟨ B, closedB, BintRange ⟩ ,
-        have :  nonempty ↥B, {
-            have := nonempty_image_iff.mpr nonemptyU ,
+        intros W nonemptyW openW,
+        rcases openW with ⟨ s, closeds, BintRange ⟩ ,
+        have nonemptys :  nonempty ↥s, {
+            have := nonempty_image_iff.mpr nonemptyW ,
             rw ← BintRange at this,
             exact nonempty.to_subtype (nonempty_inter_iff_nonempty this).left,
         },
-        exact ⟨ B, closedB, this, BintRange ⟩, 
-    },
-
-    have hv : ∃ (V':set β),
-                is_open V' ∧
-                nonempty V' ∧
-                V' ∩ (range f) = coe '' V, {
-        rcases openV with ⟨ B, closedB, BintRange ⟩ ,
-        have :  nonempty ↥B, {
-            have := nonempty_image_iff.mpr nonemptyV ,
-            rw ← BintRange at this,
-            exact nonempty.to_subtype (nonempty_inter_iff_nonempty this).left,
+        have openpre : is_open (f⁻¹' s), {
+            apply cont, 
+            exact closeds,
         },
-        exact ⟨ B, closedB, this, BintRange ⟩, 
+        have nepre   : (f ⁻¹' s).nonempty , {
+            apply preimage_nonempty_of_inter_range,
+            rw BintRange,
+            apply set.nonempty.image,
+            exact nonemptyW,
+        },
+        exact ⟨ s, closeds, nonemptys, BintRange, openpre, nepre ⟩, 
     },
 
-    rcases hu with ⟨ U', openU', nonemptyU', U'inter ⟩,
-    rcases hv with ⟨ V', openV', nonemptyV', V'inter ⟩,
+    rcases containing U nonemptyU openU with
+        ⟨ U', openU', nonemptyU', U'inter, hu, neu_pre ⟩,
 
-    have neu_pre : (f⁻¹' U').nonempty, {
-        apply preimage_nonempty_of_inter_range,
-        rw U'inter,
-        apply set.nonempty.image,
-        exact nonemptyU,
-    },
-
-    have nev_pre : (f⁻¹' V').nonempty, {
-        apply preimage_nonempty_of_inter_range,
-        rw V'inter,
-        apply set.nonempty.image,
-        exact nonemptyV,
-    },
-
-    have hu : is_open (f⁻¹' U'), {
-        apply cont, 
-        exact openU',
-    },
-
-    have hv : is_open (f⁻¹' V'), {
-        apply cont, 
-        exact openV',
-    },
+    rcases containing V nonemptyV openV with
+        ⟨ V', openV', nonemptyV', V'inter, hv, nev_pre ⟩,
 
     have hinter : (f⁻¹' U') ∩ (f⁻¹' V') = ∅ :=
         calc (f⁻¹' U') ∩ (f⁻¹' V') = f⁻¹' (U' ∩ V')      : by rw preimage_inter
@@ -821,7 +801,7 @@ begin
             ... = f⁻¹' univ                              : by simp [subtype.coe_image_univ]
             ... = univ                                   : by rw preimage_univ,
 
-
+    show false,
     unfold connected at fcontinuous,
     push_neg at fcontinuous,
     exact fcontinuous (f⁻¹' U') (f⁻¹' V') hu hv hunion hinter neu_pre nev_pre,
