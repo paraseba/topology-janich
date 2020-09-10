@@ -43,4 +43,20 @@ begin
     exact ⟨ ⟨ a, h1 ⟩ , ⟨ a, h2 ⟩ ⟩ ,
 end
 
+
+lemma inter_of_subtype (s t: set α) : t ∩ s = subtype.val '' {a : ↥s | ↑a ∈ t} :=
+begin
+    ext,
+    simp at *,
+    split,
+    {
+        intros h,
+        exact ⟨ h.2, h.1 ⟩ ,
+    },
+    {
+        rintros ⟨yins, yint ⟩,
+        exact ⟨ yint, yins ⟩, 
+    }
+end
+
 end set

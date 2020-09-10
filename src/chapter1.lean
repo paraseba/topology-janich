@@ -824,13 +824,13 @@ include topo
 def limit (seq: sequence) (l: α) :=
     ∀ (U : set α), (neighborhood U l) →  ∃ n0, ∀ n, n ≥ n0 → seq n ∈ U
 
-theorem unique_limit_of_hausdorff (h: hausdorff topo) (seq: sequence) (l m : α) :
+theorem unique_limit_of_hausdorff (haus: hausdorff topo) (seq: sequence) (l m : α) :
     (limit seq l) → (limit seq m) → l = m :=
 begin
     intros ll lm,
     by_cases H: l = m, exact H,
 
-    rcases h l m H with ⟨ U, V, neiU, neiV, uvinter ⟩ ,
+    rcases haus l m H with ⟨ U, V, neiU, neiV, uvinter ⟩ ,
     rcases ll U neiU with ⟨ n0u, hnu ⟩ ,
     rcases lm V neiV with ⟨ n0v, hnv ⟩ ,
     let n := max n0u n0v,
@@ -841,6 +841,65 @@ begin
     rw uvinter at this,
     rw mem_empty_eq at this,
     exact this
+end
+
+lemma subset_hausdorff {s : set α} (haus: hausdorff topo) : hausdorff (subspace s topo) :=
+begin
+    intros x y nexy,
+    have : ↑x ≠ ↑y := λ eq, nexy (set_coe.ext eq),
+    rcases haus x y this with ⟨ U, V, nU, nV, intuv ⟩,
+
+    rcases nU with ⟨ opu,  open_opu, xin , opuinu ⟩ ,
+    rcases nV with ⟨ opv,  open_opv, yin , opvinv ⟩ ,
+
+    use {  a | ↑ a ∈ s ∩ opu },
+    use {  a | ↑ a ∈ s ∩ opv },
+
+    have aux : ∀ (a b : set α), a ∩ b = b ∩ a ∩ b := λ a b,
+            calc  a ∩ b = a ∩ (b ∩ b) : by simp [inter_self]
+                ... = (a ∩ b) ∩ b : by simp [inter_assoc]
+                ... = (b ∩ a) ∩ b : by simp [inter_comm]
+                ... = b ∩ a ∩ b : by simp,
+
+    split,
+    {
+        use {  a | ↑ a ∈ s ∩ opu },
+        split,
+        { 
+            use opu,
+            rw ← inter_of_subtype,
+            split,
+            exact open_opu,
+            apply aux,
+        },
+        {
+            simp at *,
+            exact xin,
+        }
+    },
+    {
+        use {  a | ↑ a ∈ s ∩ opv },
+        split,
+        { 
+            use opv,
+            rw ← inter_of_subtype,
+            split,
+            exact open_opv,
+            apply aux,
+        },
+        {
+            simp at *,
+            exact yin,
+        },
+        simp,
+        change {a : ↥s | ↑a ∈ opu ∩ opv }  = ∅,
+        have : opu ∩ opv = ∅ := by {
+            have := inter_subset_inter opuinu opvinv,
+            rw intuv at this,
+            exact eq_empty_of_subset_empty this,
+        },
+        simp [this],
+    }
 end
 
 end topology
